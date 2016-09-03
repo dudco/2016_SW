@@ -33,13 +33,18 @@ public class CallingReciver extends BroadcastReceiver {
         CallThread thread = new CallThread();
         if (TelephonyManager.EXTRA_STATE_OFFHOOK.equals(state)) {
             Log.d("dudco", "통화");
-            thread.start();
+            thread.run();
         }else{
-            thread.interrupt();
+            Log.d("dudco", "종료");
+            Intent i = new Intent("com.example.dudco.sw.NOTIFICATION_LISTENER_EXAMPLE");
+            i.putExtra("Call", "Quick");
+            context.sendBroadcast(i);
+//            thread.stopT();
         }
     }
 
     public class CallThread extends Thread{
+        Boolean stopFlag = false;
         @Override
         public void run() {
             while(true){
@@ -53,6 +58,9 @@ public class CallingReciver extends BroadcastReceiver {
                     e.printStackTrace();
                 }
             }
+        }
+        public void stopT(){
+            this.stopFlag = true;
         }
     }
 }

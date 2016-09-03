@@ -67,15 +67,16 @@ public class NLService extends NotificationListenerService {
                 Intent i1 = new  Intent("com.example.dudco.sw.NOTIFICATION_LISTENER_EXAMPLE");
                 i1.putExtra("notification_event","=====================");
                 sendBroadcast(i1);
-                int i=1;
                 for (StatusBarNotification sbn : NLService.this.getActiveNotifications()) {
                     Intent i2 = new  Intent("com.example.dudco.sw.NOTIFICATION_LISTENER_EXAMPLE");
                     Notification mNotification=sbn.getNotification();
                     Bundle extras = mNotification.extras;
                     String title = extras.getString(Notification.EXTRA_TITLE);
-                    i2.putExtra("notification_event",title );
-                    sendBroadcast(i2);
-                    i++;
+//                    Log.d("dudco", title);
+                    if(title != null){
+                        i2.putExtra("notification_event",title);
+                        sendBroadcast(i2);
+                    }
                 }
                 Intent i3 = new  Intent("com.example.dudco.sw.NOTIFICATION_LISTENER_EXAMPLE");
                 i3.putExtra("notification_event","===== Notification List ====");
