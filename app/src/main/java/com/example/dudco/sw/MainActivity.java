@@ -36,7 +36,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-public class MainActivity extends Activity implements BeaconConsumer{
+public class MainActivity extends Activity implements BeaconConsumer {
     private TextView txtView;
     private NotificationReceiver nReceiver;
     private BeaconManager beaconManager = null;
@@ -47,6 +47,10 @@ public class MainActivity extends Activity implements BeaconConsumer{
 
     BeaconTransmitter beaconTransmitter;
     BeaconParser beaconParser;
+
+    public static Boolean isRunning = false;
+
+    SpeechRecognizer mRecognizer;
 
     Beacon beacon_fire = new Beacon.Builder()
             .setId1("2f234454-cf6d-4a0f-adf2-f4911ba9ffa6")
@@ -79,17 +83,17 @@ public class MainActivity extends Activity implements BeaconConsumer{
             public void onClick(View v) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED ||
-                        checkSelfPermission(Manifest.permission.READ_SMS) != PackageManager.PERMISSION_GRANTED ||
+                            checkSelfPermission(Manifest.permission.READ_SMS) != PackageManager.PERMISSION_GRANTED ||
                             checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED ||
                             checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED ||
                             checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED ||
                             checkSelfPermission(Manifest.permission.BLUETOOTH) != PackageManager.PERMISSION_GRANTED ||
                             checkSelfPermission(Manifest.permission.BLUETOOTH_ADMIN) != PackageManager.PERMISSION_GRANTED) {
-                    requestPermissions(new String[]{Manifest.permission.READ_PHONE_STATE, Manifest.permission.READ_SMS, Manifest.permission.RECORD_AUDIO,
-                            Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN}, 123);
+                        requestPermissions(new String[]{Manifest.permission.READ_PHONE_STATE, Manifest.permission.READ_SMS, Manifest.permission.RECORD_AUDIO,
+                                Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN}, 123);
                     }
                 }
-                Intent intent=new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS");
+                Intent intent = new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS");
                 startActivity(intent);
             }
         });
@@ -112,7 +116,7 @@ public class MainActivity extends Activity implements BeaconConsumer{
             public void onClick(View v) {
                 txtView.setText("");
                 Intent i = new Intent("com.example.dudco.sw.NOTIFICATION_LISTENER_SERVICE_EXAMPLE");
-                i.putExtra("command","list");
+                i.putExtra("command", "list");
                 sendBroadcast(i);
             }
         });
@@ -134,9 +138,11 @@ public class MainActivity extends Activity implements BeaconConsumer{
                     List<Beacon> c = Collections.synchronizedList((List<Beacon>) beacons);
                     for (Beacon beacon : c) {
                         Log.d("Dudco", beacon.getId2().toString());
-                        if(beacon.getId2().toString().equals("10231")){
-                            switch (beacon.getId3().toString()){
-                                case "100" : handler.sendEmptyMessage(100); break;
+                        if (beacon.getId2().toString().equals("10231")) {
+                            switch (beacon.getId3().toString()) {
+                                case "100":
+                                    handler.sendEmptyMessage(100);
+                                    break;
                             }
                         }
                     }
@@ -146,84 +152,77 @@ public class MainActivity extends Activity implements BeaconConsumer{
 
         try {
             beaconManager.startRangingBeaconsInRegion(new Region("myRangingUniqueId", null, null, null));
-        } catch (RemoteException e) {  }
+        } catch (RemoteException e) {
+        }
     }
+
     Handler handler = new Handler() {
         public void handleMessage(Message msg) {
             // 비콘의 아이디와 거리를 측정하여 textView에 넣는다.
-            if(msg.what == 100){
-                if(!isPop){
-                    Toast.makeText(MainActivity.this, "화재",Toast.LENGTH_SHORT).show();
+            if (msg.what == 100) {
+                if (!isPop) {
+//                    Toast.makeText(MainActivity.this, "화재", Toast.LENGTH_SHORT).show();
+                    startService(new Intent(MainActivity.this, AlertService.class));
 //                    isPop = true;
                 }
             }
-//            for(int i = 0 ; i < beaconList.size() ; i++){
-//                Beacon beacon = beaconList.get(i);
-//                if(beacon.getId2().toString().equals("10231")){
-//                    Log.d("dudco","ID3 : "+ beacon.getId3() + "/ Distance : " + Double.parseDouble(String.format("%.3f", beacon.getDistance())) + "m\n");
-//                }
-////                textView.append("ID : " + beacon.getId3() + " / " + "Distance : " + Double.parseDouble(String.format("%.3f", beacon.getDistance())) + "m\n");
-//            }
-            // 자기 자신을 1초마다 호출
-//            handler.sendEmptyMessageDelayed(0, 1000);
         }
     };
 
-
     public class NotificationReceiver extends BroadcastReceiver {
-        private Boolean isRunning = false;
         @Override
         public void onReceive(Context context, Intent intent) {
             String temp = intent.getStringExtra("notification_event");
             String call = intent.getStringExtra("Call");
 
-            if(temp!=null) {
+            if (temp != null) {
                 if (temp.equals("선린영채")) {
                     if (isRunning == false) {
-//                    isRunning = true;
+                        isRunning = true;
                         Log.d("dudco", temp + "와아아아아");
-                        startlisting();
+
+                        Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+                        i.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
+                        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR");
+
+                        mRecognizer = SpeechRecognizer.createSpeechRecognizer(MainActivity.this);
+                        mRecognizer.setRecognitionListener(listner);
+                        Log.d("dudco", "start listening");
+                        mRecognizer.startListening(i);
                     }
                 }
                 Log.d("dudco", temp);
             }
-            if(call != null) {
+            if (call != null) {
                 if (call.equals("Quick")) {
                     Log.d("dudco", "beacon stop");
-                    if(beaconRunning){
+                    if (beaconRunning) {
+                        Log.d("dudco", "stop");
                         beaconTransmitter.stopAdvertising();
+                        beaconRunning = false;
 //                        isPop = false;
                     }
+                    isRunning = false;
+                    mRecognizer.stopListening();
                 }
             }
-            txtView.setText(txtView.getText() +"\n"+temp);
+            txtView.setText(txtView.getText() + "\n" + temp);
         }
     }
 
-
-    public void startlisting(){
-        Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        i.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
-        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR");
-
-        SpeechRecognizer mRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
-        mRecognizer.setRecognitionListener(listner);
-        Log.d("dudco", "start listening");
-        mRecognizer.startListening(i);
-    }
-
-    public  RecognitionListener listner = new RecognitionListener() {
+    public RecognitionListener listner = new RecognitionListener() {
         @Override
         public void onReadyForSpeech(Bundle params) {
             Toast.makeText(MainActivity.this, "준비 끝", Toast.LENGTH_SHORT).show();
         }
+
         @Override
         public void onResults(Bundle results) {
             ArrayList<String> strings = (ArrayList<String>) results.get(SpeechRecognizer.RESULTS_RECOGNITION);
-            for(String str : strings){
-                if(str.contains("화재")){
+            for (String str : strings) {
+                if (str.contains("화재")) {
                     beaconManager.unbind(MainActivity.this);
-                    if(!beaconRunning){
+                    if (!beaconRunning) {
                         beaconTransmitter.startAdvertising(beacon_fire);
                         beaconRunning = true;
                     }
@@ -231,20 +230,34 @@ public class MainActivity extends Activity implements BeaconConsumer{
             }
             Toast.makeText(MainActivity.this, strings.toString(), Toast.LENGTH_SHORT).show();
         }
+
         @Override
-        public void onEndOfSpeech() { }
+        public void onEndOfSpeech() {
+        }
+
         @Override
-        public void onBeginningOfSpeech() {}
+        public void onBeginningOfSpeech() {
+        }
+
         @Override
-        public void onRmsChanged(float rmsdB) {}
+        public void onRmsChanged(float rmsdB) {
+        }
+
         @Override
-        public void onBufferReceived(byte[] buffer) {}
+        public void onBufferReceived(byte[] buffer) {
+        }
+
         @Override
-        public void onError(int error) {}
+        public void onError(int error) {
+        }
+
         @Override
-        public void onPartialResults(Bundle partialResults) {}
+        public void onPartialResults(Bundle partialResults) {
+        }
+
         @Override
-        public void onEvent(int eventType, Bundle params) {}
+        public void onEvent(int eventType, Bundle params) {
+        }
     };
 }
 
