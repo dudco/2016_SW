@@ -60,6 +60,14 @@ public class MainActivity extends Activity implements BeaconConsumer {
             .setTxPower(-59)
             .setDataFields(Arrays.asList(new Long[]{0l}))
             .build();
+    Beacon beacon_heart = new Beacon.Builder()
+            .setId1("2f234454-cf6d-4a0f-adf2-f4911ba9ffa6")
+            .setId2("10231")
+            .setId3("101")
+            .setManufacturer(0x0118)
+            .setTxPower(-59)
+            .setDataFields(Arrays.asList(new Long[]{0l}))
+            .build();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -139,9 +147,13 @@ public class MainActivity extends Activity implements BeaconConsumer {
                     for (Beacon beacon : c) {
                         Log.d("Dudco", beacon.getId2().toString());
                         if (beacon.getId2().toString().equals("10231")) {
+                            Log.d("Dudcoasdf", beacon.getId3().toString());
                             switch (beacon.getId3().toString()) {
                                 case "100":
                                     handler.sendEmptyMessage(100);
+                                    break;
+                                case "101":
+                                    handler.sendEmptyMessage(101);
                                     break;
                             }
                         }
@@ -159,11 +171,19 @@ public class MainActivity extends Activity implements BeaconConsumer {
     Handler handler = new Handler() {
         public void handleMessage(Message msg) {
             // 비콘의 아이디와 거리를 측정하여 textView에 넣는다.
+            Log.d("dudco what", msg.what + "");
             if (msg.what == 100) {
                 if (!isPop) {
 //                    Toast.makeText(MainActivity.this, "화재", Toast.LENGTH_SHORT).show();
                     startService(new Intent(MainActivity.this, AlertService.class));
 //                    isPop = true;
+                }
+            }
+            if(msg.what == 101){
+                 Log.d("dudco", isPop + "");
+                if(!isPop){
+                    Log.d("Dudco", "start");
+                    startService(new Intent(MainActivity.this, AlertService2.class));
                 }
             }
         }
@@ -181,14 +201,7 @@ public class MainActivity extends Activity implements BeaconConsumer {
                         isRunning = true;
                         Log.d("dudco", temp + "와아아아아");
 
-                        Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-                        i.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
-                        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR");
-
-                        mRecognizer = SpeechRecognizer.createSpeechRecognizer(MainActivity.this);
-                        mRecognizer.setRecognitionListener(listner);
-                        Log.d("dudco", "start listening");
-                        mRecognizer.startListening(i);
+                        startListening();
                     }
                 }
                 Log.d("dudco", temp);
@@ -209,6 +222,16 @@ public class MainActivity extends Activity implements BeaconConsumer {
             txtView.setText(txtView.getText() + "\n" + temp);
         }
     }
+    public void startListening(){
+        Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        i.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR");
+
+        mRecognizer = SpeechRecognizer.createSpeechRecognizer(MainActivity.this);
+        mRecognizer.setRecognitionListener(listner);
+        Log.d("dudco", "start listening");
+        mRecognizer.startListening(i);
+    }
 
     public RecognitionListener listner = new RecognitionListener() {
         @Override
@@ -226,6 +249,12 @@ public class MainActivity extends Activity implements BeaconConsumer {
                         beaconTransmitter.startAdvertising(beacon_fire);
                         beaconRunning = true;
                     }
+                }else if(str.contains("심장")){
+                    beaconManager.unbind(MainActivity.this);
+                    if (!beaconRunning) {
+                        beaconTransmitter.startAdvertising(beacon_heart);
+                        beaconRunning = true;
+                    }
                 }
             }
             Toast.makeText(MainActivity.this, strings.toString(), Toast.LENGTH_SHORT).show();
@@ -233,6 +262,7 @@ public class MainActivity extends Activity implements BeaconConsumer {
 
         @Override
         public void onEndOfSpeech() {
+//            Toast.makeText(MainActivity.this, "End", Toast.LENGTH_SHORT).show();
         }
 
         @Override
@@ -249,6 +279,9 @@ public class MainActivity extends Activity implements BeaconConsumer {
 
         @Override
         public void onError(int error) {
+//            Toast.makeText(MainActivity.this, "error", Toast.LENGTH_SHORT).show();
+            startListening();
+
         }
 
         @Override
