@@ -8,11 +8,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.os.RemoteException;
+import android.provider.Settings;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
@@ -99,6 +101,13 @@ public class MainActivity extends Activity implements BeaconConsumer {
                             checkSelfPermission(Manifest.permission.BLUETOOTH_ADMIN) != PackageManager.PERMISSION_GRANTED) {
                         requestPermissions(new String[]{Manifest.permission.READ_PHONE_STATE, Manifest.permission.READ_SMS, Manifest.permission.RECORD_AUDIO,
                                 Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN}, 123);
+                    }
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    if(!Settings.canDrawOverlays(MainActivity.this)){
+                        Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
+                        intent.setData(Uri.parse("package:" + getPackageName()));
+                        startActivityForResult(intent, 1234);
                     }
                 }
                 Intent intent = new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS");
@@ -196,7 +205,7 @@ public class MainActivity extends Activity implements BeaconConsumer {
             String call = intent.getStringExtra("Call");
 
             if (temp != null) {
-                if (temp.equals("선린영채")) {
+                if (temp.equals("119")) {
                     if (isRunning == false) {
                         isRunning = true;
                         Log.d("dudco", temp + "와아아아아");
@@ -217,6 +226,7 @@ public class MainActivity extends Activity implements BeaconConsumer {
                     }
                     isRunning = false;
                     mRecognizer.stopListening();
+                    startService(new Intent(MainActivity.this, AlertService.class));
                 }
             }
             txtView.setText(txtView.getText() + "\n" + temp);
@@ -243,7 +253,7 @@ public class MainActivity extends Activity implements BeaconConsumer {
         public void onResults(Bundle results) {
             ArrayList<String> strings = (ArrayList<String>) results.get(SpeechRecognizer.RESULTS_RECOGNITION);
             for (String str : strings) {
-                if (str.contains("화재")) {
+                if (str.contains("화재") || str.contains("불")) {
                     beaconManager.unbind(MainActivity.this);
                     if (!beaconRunning) {
                         beaconTransmitter.startAdvertising(beacon_fire);
@@ -280,8 +290,8 @@ public class MainActivity extends Activity implements BeaconConsumer {
         @Override
         public void onError(int error) {
 //            Toast.makeText(MainActivity.this, "error", Toast.LENGTH_SHORT).show();
-            startListening();
-
+            if(isRunning)
+                startListening();
         }
 
         @Override
